@@ -4,7 +4,6 @@
 import requests
 import secrets
 
-
 def get_data(url: str):
     # takes in our url and adds needed info
     # uses get_meta to grab total number of iterations needed
@@ -38,7 +37,8 @@ def get_meta(url: str):
 def outputFile(all_data):
     # prints our dictionary to a file
     with open("output.txt", "w") as file_object:
-        print(all_data, file=file_object)
+        for school_data in all_data:
+            print(school_data, file=file_object)
         file_object.close()
 
 
