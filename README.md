@@ -1,8 +1,9 @@
-# DanielKotlinski_Sprint1
-# 2/7/2021
+# DanielKotlinski_Sprint2
+# 2/17/2021
 
-This is sprint 1 of project 1. This program retrieves: 
+This is sprint 2 of project 1. This program retrieves: 
 
+id
 school.name
 school.city
 2018.student.size
@@ -12,6 +13,6 @@ school.city
 
 from universities with degrees of type 2 and 3 using gov api key and python.
 
-All 3203 data is retrieved and printed/dumped into a .txt file.
+A sqlite database is created and populated with all 3203 school's data.
+Currently missing are test cases which will be committed soon.
 
-It also includes a test runner and a linter (the one provided in class).

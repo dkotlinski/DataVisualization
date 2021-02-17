@@ -1,8 +1,12 @@
-# Daniel Kotlinski Sprint1 University Data
-# 2/7/21
+# Daniel Kotlinski Sprint2 putting university data into a database
+# 2/16/21
+
 
 import requests
 import secrets
+import sqlite3
+from typing import Tuple
+
 
 def get_data(url: str):
     # takes in our url and adds needed info
@@ -22,6 +26,7 @@ def get_data(url: str):
             final_data.extend(page_data)
     return final_data
 
+
 def get_meta(url: str):
     # takes in our base url at page 0
     # use metadata to find how many pages of data there are
@@ -34,12 +39,37 @@ def get_meta(url: str):
     pagenum = (round(total_data/pages)+1)
     return pagenum
 
-def outputFile(all_data):
-    # prints our dictionary to a file
-    with open("output.txt", "w") as file_object:
-        for school_data in all_data:
-            print(school_data, file=file_object)
-        file_object.close()
+
+def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
+    db_connection = sqlite3.connect(filename)#connect to existing DB or create new one
+    cursor = db_connection.cursor()#get ready to read/write data
+    return db_connection, cursor
+
+
+def close_db(connection: sqlite3.Connection):
+    connection.commit()  # make sure any changes get saved
+    connection.close()
+
+
+def setup_db(cursor: sqlite3.Cursor):
+    cursor.execute('''CREATE TABLE IF NOT EXISTS University_Info(
+    id INTEGER PRIMARY KEY,
+    school_name TEXT NOT NULL,
+    school_city TEXT NOT NULL,
+    student_size_2018 TEXT DEFAULT NULL,
+    student_size_2017 TEXT DEFAULT NULL,
+    earnings_2017 TEXT DEFAULT NULL,
+    repayment_2016 TEXT DEFAULT NULL
+    );''')
+
+
+def insert_to_database(cursor:sqlite3.Cursor, alldata):
+    for data in alldata:
+        cursor.execute('''INSERT INTO University_Info(id, school_name, school_city, student_size_2018
+                , student_size_2017, earnings_2017, repayment_2016)
+                VALUES (?,?,?,?,?,?,?)''', (data["id"], data["school.name"], data["school.city"], data["2018.student.size"],
+                data["2017.student.size"], data["2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line"],
+                data["2016.repayment.3_yr_repayment.overall"]))
 
 
 def main():
@@ -47,8 +77,15 @@ def main():
     url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=id,school.city,school.name,2018.student.size,2017.student.size,2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
     # enter url into function to grab data
     all_data = get_data(url)
-    # now put data into our text file
-    outputFile(all_data)
+    # now put data into a database
+    conn, cursor = open_db("project_db.sqlite")
+    print(type(conn))
+    # drop existing table so there are no errors
+    #cursor.execute('DROP TABLE IF EXISTS University_Info')
+    setup_db(cursor)
+    insert_to_database(cursor, all_data)
+    close_db(conn)
+
 
 if __name__ == '__main__':
     main()
