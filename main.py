@@ -56,10 +56,10 @@ def setup_db(cursor: sqlite3.Cursor):
     id INTEGER PRIMARY KEY,
     school_name TEXT NOT NULL,
     school_city TEXT NOT NULL,
-    student_size_2018 TEXT DEFAULT NULL,
-    student_size_2017 TEXT DEFAULT NULL,
-    earnings_2017 TEXT DEFAULT NULL,
-    repayment_2016 TEXT DEFAULT NULL
+    student_size_2018 INTEGER DEFAULT NULL,
+    student_size_2017 INTEGER DEFAULT NULL,
+    earnings_2017 INTEGER DEFAULT NULL,
+    repayment_2016 INTEGER DEFAULT NULL
     );''')
 
 
@@ -74,7 +74,9 @@ def insert_to_database(cursor:sqlite3.Cursor, alldata):
 
 def main():
     # main function to hold base URL and call other functions
-    url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=id,school.city,school.name,2018.student.size,2017.student.size,2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
+    url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=" \
+          "id,school.city,school.name,2018.student.size,2017.student.size," \
+          "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
     # enter url into function to grab data
     all_data = get_data(url)
     # now put data into a database
