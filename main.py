@@ -41,8 +41,8 @@ def get_meta(url: str):
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
-    db_connection = sqlite3.connect(filename)#connect to existing DB or create new one
-    cursor = db_connection.cursor()#get ready to read/write data
+    db_connection = sqlite3.connect(filename)  # connect to existing DB or create new one
+    cursor = db_connection.cursor()  # get ready to read/write data
     return db_connection, cursor
 
 
@@ -67,9 +67,11 @@ def insert_to_database(cursor:sqlite3.Cursor, alldata):
     for data in alldata:
         cursor.execute('''INSERT INTO University_Info(id, school_name, school_city, student_size_2018
                 , student_size_2017, earnings_2017, repayment_2016)
-                VALUES (?,?,?,?,?,?,?)''', (data["id"], data["school.name"], data["school.city"], data["2018.student.size"],
-                data["2017.student.size"], data["2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line"],
-                data["2016.repayment.3_yr_repayment.overall"]))
+                VALUES (?,?,?,?,?,?,?)''', (data["id"], data["school.name"], data["school.city"],
+                                            data["2018.student.size"],
+                                            data["2017.student.size"],
+                                            data["2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line"],
+                                            data["2016.repayment.3_yr_repayment.overall"]))
 
 
 def main():
@@ -83,7 +85,7 @@ def main():
     conn, cursor = open_db("project_db.sqlite")
     print(type(conn))
     # drop existing table so there are no errors
-    #cursor.execute('DROP TABLE IF EXISTS University_Info')
+    # cursor.execute('DROP TABLE IF EXISTS University_Info')
     setup_db(cursor)
     insert_to_database(cursor, all_data)
     close_db(conn)
