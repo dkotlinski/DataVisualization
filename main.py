@@ -1,7 +1,8 @@
 # Daniel Kotlinski Sprint2 putting university data into a database
-# 2/16/21
+# 2/23/21
 
 
+import openpyxl
 import requests
 import secrets
 import sqlite3
@@ -52,7 +53,7 @@ def close_db(connection: sqlite3.Connection):
     connection.close()
 
 
-def setup_db(cursor: sqlite3.Cursor):
+def create_university_info(cursor: sqlite3.Cursor):
     cursor.execute('''CREATE TABLE IF NOT EXISTS University_Info(
     id INTEGER PRIMARY KEY,
     school_name TEXT NOT NULL,
@@ -64,8 +65,21 @@ def setup_db(cursor: sqlite3.Cursor):
     );''')
 
 
-def insert_to_database(cursor:sqlite3.Cursor, alldata):
-    for data in alldata:
+def create_employment_data(cursor: sqlite3.Cursor):
+    cursor.execute('''CREATE TABLE IF NOT EXISTS Employment_Data (
+    occ_code TEXT NOT NULL,
+    area INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    occupation_major_title TEXT NOT NULL,
+    totalemployment_perfield_perstate INTEGER,
+    hourly_25th_percentile FLOAT DEFAULT NULL,
+    annual_25th_percentile INTEGER DEFAULT NULL,
+    PRIMARY KEY(occ_code, state, occupation_major_title)
+    )''')
+
+
+def insert_to_database(cursor: sqlite3.Cursor, all_data):
+    for data in all_data:
         cursor.execute('''INSERT INTO University_Info(id, school_name, school_city, student_size_2018
                 , student_size_2017, earnings_2017, repayment_2016)
                 VALUES (?,?,?,?,?,?,?)''', (data["id"], data["school.name"], data["school.city"],
@@ -75,8 +89,37 @@ def insert_to_database(cursor:sqlite3.Cursor, alldata):
                                             data["2016.repayment.3_yr_repayment.overall"]))
 
 
+def excel_to_database(excel_data, cursor: sqlite3.Cursor):
+    # load workbook .xlsx file
+    workbook_file = openpyxl.load_workbook(excel_data)
+    worksheet = workbook_file.active
+    # iterate through all data in every row
+    for data in worksheet.rows:
+        major_level = data[9].value
+        if major_level == "major":
+            # designate column names given data
+            area = data[0].value
+            state = data[1].value
+            major_title = data[8].value
+            totalemployment_perfield_perstate = data[10].value
+            hourly_25th_percentile = data[19].value
+            annual_25th_percentile = data[24].value
+            occupational_code = data[7].value
+            cursor.execute('''INSERT INTO Employment_Data (occ_code, area, state, occupation_major_title
+                    , totalemployment_perfield_perstate, hourly_25th_percentile, annual_25th_percentile)
+                    VALUES (?,?,?,?,?,?,?)''', (occupational_code, area, state,
+                                                major_title,
+                                                totalemployment_perfield_perstate,
+                                                hourly_25th_percentile,
+                                                annual_25th_percentile))
+        else:
+            pass
+
+
 def main():
     # main function to hold base URL and call other functions
+    # open and read the given excel file, print contents to console
+    excel_data = "state_M2019_dl.xlsx"  # pd.read_excel
     url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=" \
           "id,school.city,school.name,2018.student.size,2017.student.size," \
           "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
@@ -84,10 +127,16 @@ def main():
     all_data = get_data(url)
     # now put data into a database
     conn, cursor = open_db("project_db.sqlite")
-    print(type(conn))
-    # drop existing table so there are no errors
-    # cursor.execute('DROP TABLE IF EXISTS University_Info')
-    setup_db(cursor)
+    # drop existing table so there are no primary key errors
+    cursor.execute('DROP TABLE IF EXISTS University_Info')
+    # create database for university info
+    create_university_info(cursor)
+    # drop existing table so there are no primary key errors
+    cursor.execute('DROP TABLE IF EXISTS Employment_Data')
+    # create database for employment data
+    create_employment_data(cursor)
+    # insert data into databases
+    excel_to_database(excel_data, cursor)
     insert_to_database(cursor, all_data)
     close_db(conn)
 
