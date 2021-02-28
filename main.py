@@ -1,4 +1,4 @@
-# Daniel Kotlinski Sprint2 putting university data into a database
+# Daniel Kotlinski Sprint 3 read data out of an excel file to add to database
 # 2/23/21
 
 
@@ -10,7 +10,6 @@ from typing import Tuple
 
 
 def get_data(url: str):
-    # test commeit to test workflow
     # takes in our url and adds needed info
     # uses get_meta to grab total number of iterations needed
     # loops through 'results' data, adds it to an array, and returns the array
@@ -74,11 +73,12 @@ def create_employment_data(cursor: sqlite3.Cursor):
     totalemployment_perfield_perstate INTEGER,
     hourly_25th_percentile FLOAT DEFAULT NULL,
     annual_25th_percentile INTEGER DEFAULT NULL,
+    o_group TEXT NOT NULL,
     PRIMARY KEY(occ_code, state, occupation_major_title)
     )''')
 
 
-def insert_to_database(cursor: sqlite3.Cursor, all_data):
+def web_to_database(cursor: sqlite3.Cursor, all_data):
     for data in all_data:
         cursor.execute('''INSERT INTO University_Info(id, school_name, school_city, student_size_2018
                 , student_size_2017, earnings_2017, repayment_2016)
@@ -95,8 +95,9 @@ def excel_to_database(excel_data, cursor: sqlite3.Cursor):
     worksheet = workbook_file.active
     # iterate through all data in every row
     for data in worksheet.rows:
-        major_level = data[9].value
-        if major_level == "major":
+        # make sure we only take the major o_groups into our DB
+        o_group = data[9].value
+        if o_group == "major":
             # designate column names given data
             area = data[0].value
             state = data[1].value
@@ -106,20 +107,18 @@ def excel_to_database(excel_data, cursor: sqlite3.Cursor):
             annual_25th_percentile = data[24].value
             occupational_code = data[7].value
             cursor.execute('''INSERT INTO Employment_Data (occ_code, area, state, occupation_major_title
-                    , totalemployment_perfield_perstate, hourly_25th_percentile, annual_25th_percentile)
-                    VALUES (?,?,?,?,?,?,?)''', (occupational_code, area, state,
+                    , totalemployment_perfield_perstate, hourly_25th_percentile, annual_25th_percentile, o_group)
+                    VALUES (?,?,?,?,?,?,?,?)''', (occupational_code, area, state,
                                                 major_title,
                                                 totalemployment_perfield_perstate,
                                                 hourly_25th_percentile,
-                                                annual_25th_percentile))
-        else:
-            pass
+                                                annual_25th_percentile, o_group))
 
 
 def main():
     # main function to hold base URL and call other functions
     # open and read the given excel file, print contents to console
-    excel_data = "state_M2019_dl.xlsx"  # pd.read_excel
+    excel_data = "state_M2019_dl.xlsx"
     url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=" \
           "id,school.city,school.name,2018.student.size,2017.student.size," \
           "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
@@ -137,7 +136,7 @@ def main():
     create_employment_data(cursor)
     # insert data into databases
     excel_to_database(excel_data, cursor)
-    insert_to_database(cursor, all_data)
+    web_to_database(cursor, all_data)
     close_db(conn)
 
 
