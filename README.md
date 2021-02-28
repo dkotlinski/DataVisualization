@@ -1,11 +1,10 @@
 # DanielKotlinski_Sprint3
 # 2/28/2021
 
-**IMPORTANT info for test_main.py:**
-
-The paths in tests for the Excel file are hardcoded. If given the Excel file name, an error occurs "file not found"
-Important to note that this is not the case in main.py. 
-Working on finding a solution for this, for now I suppose it is better you _enter your own path_...
+**IMPORTANT info for test_project1.py:**
+Workflow **NOW** works and pytest all run with no completion errors. Changing project name from "main.py" to "project1.py" was the first change
+that caused github actions to actually recognize the file and not error code pytest with "no module 'main'". Uploaded test database and project database
+and had no more errors with github workflow actions.
 
 This is **Sprint 3** of project 1. This program retrieves: 
 
@@ -14,15 +13,16 @@ id, school.name, school.city, 2018.student.size, 2017.student.size, 2017.earning
 and python. A sqlite database is created and populated with all 3203 school's data.
 
 **New in sprint 3**, retrieves data from the Occupational Employment Statistics 2019 Excel file.
-Taking in all data, it populates a new table in our database with major occupations ONLY.
+Taking in all data that we want, it populates a new table in our database with major occupations ONLY.
 
 **Specific to the code**
 There are multiple lines inside of main() that drops table on start up. They are commented out but useful when running the program multiple times to avoid sql collision errors. 
 ID is used as the primary key (assuming school names are not unique) in our school data table.
 State, OCC Code, and Occupation Title are used as the primary key in our employment data table.
 
-**Tests and workflow problems**
-All automated tests for sprint 2 & 3 are included. Working on fixing workflow errors where it says that there are no tests found,
+**Tests ~~and workflow problems~~**
+All automated tests for sprint 2 & 3 are included. All work properly in pycharm as well as
+through github workflow..._nice_.... ~~Working on fixing workflow errors where it says that there are no tests found,
 even though in pycharm
-_there are, and they all work._
+_there are, and they all work._~~
 
