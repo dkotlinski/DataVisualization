@@ -1,0 +1,5 @@
+###### Requirements without Version Specifiers ######`
+flake8
+requests
+sqlite3
+openpyxl
