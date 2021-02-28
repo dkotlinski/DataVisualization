@@ -44,7 +44,7 @@ def test_web_to_database():
 # 1 make sure you get data from all 50 states from the original data
 def test_create_unemployment_data():
     # hardcode path ONLY in test, without it we are told "file not found"
-    excel_data_path = r'C:\Users\Owner\PycharmProjects\DanielKotlinski_Sprint1\state_M2019_dl.xlsx'
+    excel_data_path = "state_M2019_dl.xlsx"
     conn, cursor = project1.open_db("project_db.sqlite")
     cursor.execute('DROP TABLE IF EXISTS Employment_Data')
     project1.create_employment_data(cursor)
@@ -62,7 +62,7 @@ def test_create_unemployment_data():
 
 def test_excel_to_database():
     # hardcode path ONLY in test, without it we are told "file not found"
-    excel_data_path = r'C:\Users\Owner\PycharmProjects\DanielKotlinski_Sprint1\test_file.xlsx'
+    excel_data_path = "test_file.xlsx"
     # create/use project_test_db so we do not ruin our project_db
     # project_test_db has edited o_groups that say "major", this is for testing purposes since the test database
     # is only 50 rows, if o_groups were not replaced with "major", we would return 1 result.. which is not enough
@@ -95,7 +95,7 @@ def test_create_employment_data_table():
 
 def test_excel_to_database_exists():
     # hardcode path ONLY in test, without it we are told "file not found"
-    excel_data_path = r'C:\Users\Owner\PycharmProjects\DanielKotlinski_Sprint1\test_file.xlsx'
+    excel_data_path = "test_file.xlsx"
     # create/use project_test_db so we do not ruin our project_db
     conn, cursor = project1.open_db("project_test_db")
     # drop table so it no longer exists
