@@ -15,12 +15,7 @@ from typing import Tuple
 
 def show_figure_collegegrad_vs_job(cursor):
     college_data_list = collegegrad_to_numjobs(cursor)
-    locations = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-                 "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-                 "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-                 "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-                 "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
-    fig = px.choropleth(locations=locations,
+    fig = px.choropleth(locations=state_abbrev(),
                         locationmode="USA-states", color=college_data_list, scope="usa")
 
     fig.update_layout(
@@ -32,34 +27,33 @@ def show_figure_collegegrad_vs_job(cursor):
 
 
 def show_figure_declining_balance(cursor):
-    # this gets our list of data
     declining_balance_data = declining_balance_to_25percent(cursor)
+    fig = px.choropleth(locations=state_abbrev(),
+                        locationmode="USA-states", color=declining_balance_data, scope="usa")
+    fig.update_layout(
+        title_text='Loan Repayment vs Annual 25th Percent Salary',
+        coloraxis_colorbar=dict(
+            title="Unit")
+    )
+
+    fig.show()
+
+def state_abbrev():
     locations = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
                  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
                  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
                  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
                  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
-    fig = px.choropleth(locations=locations,
-                        locationmode="USA-states", color=declining_balance_data, scope="usa", labels=
-                        {'c1_school_closing': 'SCALE'})
-    fig.update_layout(
-        title_text='Loan Repayment vs Annual 25th Percent Salary',
-        coloraxis_colorbar=dict(
-            title="Money")
-    )
-
-    fig.show()
+    return locations
 
 
 def display_college_data(data):
     qt_app = QApplication(sys.argv)
-    window = project1GUI.Window(data) # sys.argv is the list of command line arguments
+    window = project1GUI.Window(data)
     sys.exit(qt_app.exec_())
 
 
 def declining_balance_to_25percent(cursor):
-    # Compare the 3 year graduate cohort declining balance percentage to the 25% salary in the state
-    # and visualize that data
     cursor.execute(f'''SELECT AVG(repayment_2016_balance) FROM University_Info group by school_state''')
     repayment_balance = cursor.fetchall()
     repayment_2016 = []
@@ -76,8 +70,6 @@ def declining_balance_to_25percent(cursor):
 
 
 def collegegrad_to_numjobs(cursor):
-    # get total number of college students per state
-    # must prompt user for the abbreviation of what state they wish to look at
     college_grads = []
     num_of_jobs = []
     cursor.execute(f'''SELECT sum(student_size_2018) FROM University_Info group by school_state''')
@@ -213,9 +205,9 @@ def main():
     #create_employment_data(cursor)
     #excel_to_database(excel_data, cursor)
     #web_to_database(cursor, all_data)
-    collegegrad_data = collegegrad_to_numjobs(cursor)
+    #collegegrad_data=collegegrad_to_numjobs(cursor)
     #declining_balance_to_25percent(cursor)
-    display_college_data(collegegrad_data)
+    #display_college_data(collegegrad_data)
     close_db(conn)
 
 
