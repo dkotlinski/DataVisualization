@@ -1,18 +1,57 @@
-# Daniel Kotlinski Sprint 3 read data out of an excel file to add to database
-# 2/23/21
+# Daniel Kotlinski Sprint 4 adding GUI and data visualization
+# 3/14/21
 
 
 import openpyxl
 import requests
 import secrets
 import sqlite3
+import project1GUI
+import sys
+from PyQt5.QtWidgets import *
 from typing import Tuple
 
 
+def display_data():
+    qt_app = QApplication(sys.argv)  # sys.argv is the list of command line arguments
+    sys.exit(qt_app.exec_())
+
+
+def declining_balance_to_25percent(cursor):
+    # Compare the 3 year graduate cohort declining balance percentage to the 25% salary in the state
+    # and visualize that data
+    cursor.execute(f'''SELECT AVG(repayment_2016_balance) FROM University_Info group by school_state''')
+    repayment_balance = cursor.fetchall()
+    repayment_2016 = []
+    annual_salary = []
+    for data in repayment_balance:
+        if data is not None:
+            repayment_2016.append(data[0])
+    cursor.execute(f'''SELECT AVG(annual_25th_percentile) FROM Employment_Data group by state''')
+    annual_percent = cursor.fetchall()
+    for newdata in annual_percent:
+        annual_salary.append(newdata[0])
+    answ = [i / j for i, j in zip(repayment_2016, annual_salary)]
+    print(answ)
+
+def collegegrad_to_numjobs(cursor):
+    # get total number of college students per state
+    # must prompt user for the abbreviation of what state they wish to look at
+    college_grads = []
+    num_of_jobs = []
+    cursor.execute(f'''SELECT sum(student_size_2018) FROM University_Info group by school_state''')
+    num_college_grad = cursor.fetchall()
+    for data in num_college_grad:
+        college_grads.append(data[0])
+    cursor.execute(f'''SELECT sum(jobs_1000) FROM Employment_Data group by state ''')
+    num_jobs_instate = cursor.fetchall()
+    for newdata in num_jobs_instate:
+        num_of_jobs.append(newdata[0])
+    answ = [i / j for i, j in zip(college_grads, num_of_jobs)]
+    print(answ)
+
+
 def get_data(url: str):
-    # takes in our url and adds needed info
-    # uses get_meta to grab total number of iterations needed
-    # loops through 'results' data, adds it to an array, and returns the array
     final_data = []
     numpage = get_meta(url)
     for i in range(numpage):
@@ -29,8 +68,6 @@ def get_data(url: str):
 
 
 def get_meta(url: str):
-    # takes in our base url at page 0
-    # use metadata to find how many pages of data there are
     furl = f"{url}&api_key={secrets.api_key}&page=0"
     response = requests.get(furl)
     json_data = response.json()
@@ -42,13 +79,13 @@ def get_meta(url: str):
 
 
 def open_db(filename: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
-    db_connection = sqlite3.connect(filename)  # connect to existing DB or create new one
-    cursor = db_connection.cursor()  # get ready to read/write data
+    db_connection = sqlite3.connect(filename)
+    cursor = db_connection.cursor()
     return db_connection, cursor
 
 
 def close_db(connection: sqlite3.Connection):
-    connection.commit()  # make sure any changes get saved
+    connection.commit()
     connection.close()
 
 
@@ -56,88 +93,89 @@ def create_university_info(cursor: sqlite3.Cursor):
     cursor.execute('''CREATE TABLE IF NOT EXISTS University_Info(
     id INTEGER PRIMARY KEY,
     school_name TEXT NOT NULL,
+    school_state TEXT NOT NULL,
     school_city TEXT NOT NULL,
     student_size_2018 INTEGER DEFAULT NULL,
     student_size_2017 INTEGER DEFAULT NULL,
     earnings_2017 INTEGER DEFAULT NULL,
-    repayment_2016 INTEGER DEFAULT NULL
+    repayment_2016 INTEGER DEFAULT NULL,
+    repayment_2016_balance FLOAT DEFAULT NULL
     );''')
 
 
 def create_employment_data(cursor: sqlite3.Cursor):
     cursor.execute('''CREATE TABLE IF NOT EXISTS Employment_Data (
     occ_code TEXT NOT NULL,
-    area INTEGER NOT NULL,
+    area_type INTEGER NOT NULL,
     state TEXT NOT NULL,
     occupation_major_title TEXT NOT NULL,
     totalemployment_perfield_perstate INTEGER,
     hourly_25th_percentile FLOAT DEFAULT NULL,
-    annual_25th_percentile INTEGER DEFAULT NULL,
+    annual_25th_percentile FLOAT DEFAULT NULL,
     o_group TEXT NOT NULL,
+    jobs_1000 FLOAT DEFAULT NULL,
     PRIMARY KEY(occ_code, state, occupation_major_title)
     )''')
 
 
 def web_to_database(cursor: sqlite3.Cursor, all_data):
     for data in all_data:
-        cursor.execute('''INSERT INTO University_Info(id, school_name, school_city, student_size_2018
-                , student_size_2017, earnings_2017, repayment_2016)
-                VALUES (?,?,?,?,?,?,?)''', (data["id"], data["school.name"], data["school.city"],
-                                            data["2018.student.size"],
-                                            data["2017.student.size"],
-                                            data["2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line"],
-                                            data["2016.repayment.3_yr_repayment.overall"]))
+        if data["school.state"] not in ["PR", "VI", "PW", "MP", "MH", "GU", "FM", "AS", "DC"]:
+            cursor.execute('''INSERT INTO University_Info(id, school_state, school_name, school_city, student_size_2018
+                    , student_size_2017, earnings_2017, repayment_2016, repayment_2016_balance)
+                    VALUES (?,?,?,?,?,?,?,?,?)''', (data["id"], data["school.state"], data["school.name"],
+                                                data["school.city"],
+                                                data["2018.student.size"],
+                                                data["2017.student.size"],
+                                                data["2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line"],
+                                                data["2016.repayment.3_yr_repayment.overall"],
+                                                data["2016.repayment.repayment_cohort.3_year_declining_balance"]))
 
 
 def excel_to_database(excel_data, cursor: sqlite3.Cursor):
-    # load workbook .xlsx file
     workbook_file = openpyxl.load_workbook(excel_data)
     worksheet = workbook_file.active
-    # iterate through all data in every row
     for data in worksheet.rows:
-        # make sure we only take the major o_groups into our DB
         o_group = data[9].value
+        occupational_code = data[7].value
+        area_type = data[2].value
         if o_group == "major":
-            # designate column names given data
-            area = data[0].value
-            state = data[1].value
-            major_title = data[8].value
-            totalemployment_perfield_perstate = data[10].value
-            hourly_25th_percentile = data[19].value
-            annual_25th_percentile = data[24].value
-            occupational_code = data[7].value
-            cursor.execute('''INSERT INTO Employment_Data (occ_code, area, state, occupation_major_title
-                    , totalemployment_perfield_perstate, hourly_25th_percentile, annual_25th_percentile, o_group)
-                    VALUES (?,?,?,?,?,?,?,?)''', (occupational_code, area, state,
-                                                major_title,
-                                                totalemployment_perfield_perstate,
-                                                hourly_25th_percentile,
-                                                annual_25th_percentile, o_group))
+            if occupational_code[0] != "3" and occupational_code[0] != "4":
+                if area_type != "3":
+                    state = data[1].value
+                    major_title = data[8].value
+                    totalemployment_perfield_perstate = data[10].value
+                    hourly_25th_percentile = data[19].value
+                    annual_25th_percentile = data[24].value
+                    jobs_1000 = data[12].value
+                    cursor.execute('''INSERT INTO Employment_Data (occ_code, area_type, state, occupation_major_title
+                            , totalemployment_perfield_perstate, hourly_25th_percentile, annual_25th_percentile, o_group, 
+                                    jobs_1000)
+                            VALUES (?,?,?,?,?,?,?,?,?)''', (occupational_code, area_type, state,
+                                                        major_title,
+                                                        totalemployment_perfield_perstate,
+                                                        hourly_25th_percentile,
+                                                        annual_25th_percentile, o_group, jobs_1000))
 
 
 def main():
-    # main function to hold base URL and call other functions
-    # open and read the given excel file, print contents to console
-    excel_data = "state_M2019_dl.xlsx"
+    #excel_data = "state_M2019_dl.xlsx"
     url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=" \
-          "id,school.city,school.name,2018.student.size,2017.student.size," \
-          "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall"
-    # enter url into function to grab data
+          "id,school.state,school.city,school.name,2018.student.size,2017.student.size," \
+          "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall,"\
+          "2016.repayment.repayment_cohort.3_year_declining_balance"
     all_data = get_data(url)
-    # now put data into a database
     conn, cursor = open_db("project_db.sqlite")
-    # drop existing table so there are no primary key errors
     cursor.execute('DROP TABLE IF EXISTS University_Info')
-    # create database for university info
     create_university_info(cursor)
-    # drop existing table so there are no primary key errors
-    cursor.execute('DROP TABLE IF EXISTS Employment_Data')
-    # create database for employment data
-    create_employment_data(cursor)
-    # insert data into databases
-    excel_to_database(excel_data, cursor)
+    #cursor.execute('DROP TABLE IF EXISTS Employment_Data')
+    #create_employment_data(cursor)
+    #excel_to_database(excel_data, cursor)
     web_to_database(cursor, all_data)
+    collegegrad_to_numjobs(cursor)
+    declining_balance_to_25percent(cursor)
     close_db(conn)
+    # display_data()
 
 
 if __name__ == '__main__':
