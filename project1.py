@@ -1,5 +1,5 @@
-# Daniel Kotlinski Sprint 4 adding GUI and data visualization
-# 3/14/21
+# Daniel Kotlinski Project 1, Sprint 4 adding GUI and data visualization
+# 3/18/21
 
 
 import openpyxl
@@ -15,28 +15,38 @@ from typing import Tuple
 
 def show_figure_collegegrad_vs_job(cursor):
     college_data_list = collegegrad_to_numjobs(cursor)
-    fig = px.choropleth(locations=state_abbrev(),
-                        locationmode="USA-states", color=college_data_list, scope="usa")
-
+    fig = choropleth_figure_collegegrad(college_data_list)
     fig.update_layout(
-        title_text='Number of College Graduates vs Number of Jobs Requiring College Degree',
+        title_text='Number of Jobs Requiring College Degree vs Number of College Graduates',
         coloraxis_colorbar=dict(
-            title="Num Of Students Per Job")
+            title="# Of Jobs per Student")
     )
     fig.show()
 
 
 def show_figure_declining_balance(cursor):
     declining_balance_data = declining_balance_to_25percent(cursor)
-    fig = px.choropleth(locations=state_abbrev(),
-                        locationmode="USA-states", color=declining_balance_data, scope="usa")
+    fig = choropleth_figure_decline(declining_balance_data)
     fig.update_layout(
-        title_text='Loan Repayment vs Annual 25th Percent Salary',
+        title_text='Annual 25th Percent Salary vs 2016 Loan Repayment',
         coloraxis_colorbar=dict(
-            title="Unit")
+            title="USD ($)")
     )
 
     fig.show()
+
+
+def choropleth_figure_collegegrad(college_data_list):
+    fig = px.choropleth(locations=state_abbrev(),
+                        locationmode="USA-states", color=college_data_list, scope="usa")
+    return fig
+
+
+def choropleth_figure_decline(declining_balance_data):
+    fig = px.choropleth(locations=state_abbrev(),
+                        locationmode="USA-states", color=declining_balance_data, scope="usa")
+    return fig
+
 
 def state_abbrev():
     locations = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -47,9 +57,9 @@ def state_abbrev():
     return locations
 
 
-def display_college_data(data):
+def display_college_data(data, cursor):
     qt_app = QApplication(sys.argv)
-    window = project1GUI.Window(data)
+    window = project1GUI.FirstWindow(data, cursor)
     sys.exit(qt_app.exec_())
 
 
@@ -65,14 +75,15 @@ def declining_balance_to_25percent(cursor):
     annual_percent = cursor.fetchall()
     for newdata in annual_percent:
         annual_salary.append(newdata[0])
-    answ = [i / j for i, j in zip(repayment_2016, annual_salary)]
-    return answ
+    # top / bottom
+    list_comparison = divide_two_lists(annual_salary, repayment_2016)
+    return list_comparison
 
 
 def collegegrad_to_numjobs(cursor):
     college_grads = []
     num_of_jobs = []
-    cursor.execute(f'''SELECT sum(student_size_2018) FROM University_Info group by school_state''')
+    cursor.execute(f'''SELECT (sum(student_size_2018)/4) FROM University_Info group by school_state''')
     num_college_grad = cursor.fetchall()
     for data in num_college_grad:
         college_grads.append(data[0])
@@ -80,8 +91,14 @@ def collegegrad_to_numjobs(cursor):
     num_jobs_instate = cursor.fetchall()
     for newdata in num_jobs_instate:
         num_of_jobs.append(newdata[0])
-    answ = [i / j for i, j in zip(college_grads, num_of_jobs)]
-    return answ
+    # top / bottom
+    list_comparison = divide_two_lists(num_of_jobs, college_grads)
+    return list_comparison
+
+
+def divide_two_lists(list1, list2):
+    divide_list_elements = [i / j for i, j in zip(list1, list2)]
+    return divide_list_elements
 
 
 def get_data(url: str):
@@ -190,24 +207,29 @@ def excel_to_database(excel_data, cursor: sqlite3.Cursor):
                                                         hourly_25th_percentile,
                                                         annual_25th_percentile, o_group, jobs_1000))
 
+def excel_data_picker(excel_data_name):
+    print(excel_data_name)
 
 def main():
-    #excel_data = "state_M2019_dl.xlsx"
+    excel_data = "state_M2019_dl.xlsx"
     url = "https://api.data.gov/ed/collegescorecard/v1/schools.json?school.degrees_awarded.predominant=2,3&fields=" \
           "id,school.state,school.city,school.name,2018.student.size,2017.student.size," \
           "2017.earnings.3_yrs_after_completion.overall_count_over_poverty_line,2016.repayment.3_yr_repayment.overall,"\
           "2016.repayment.repayment_cohort.3_year_declining_balance"
-    #all_data = get_data(url)
+    all_data = get_data(url)
     conn, cursor = open_db("project_db.sqlite")
-    #cursor.execute('DROP TABLE IF EXISTS University_Info')
-    #create_university_info(cursor)
-    #cursor.execute('DROP TABLE IF EXISTS Employment_Data')
-    #create_employment_data(cursor)
-    #excel_to_database(excel_data, cursor)
-    #web_to_database(cursor, all_data)
-    #collegegrad_data=collegegrad_to_numjobs(cursor)
-    #declining_balance_to_25percent(cursor)
-    #display_college_data(collegegrad_data)
+    cursor.execute('DROP TABLE IF EXISTS University_Info')
+    create_university_info(cursor)
+    cursor.execute('DROP TABLE IF EXISTS Employment_Data')
+    create_employment_data(cursor)
+    excel_to_database(excel_data, cursor)
+    web_to_database(cursor, all_data)
+    collegegrad_data=collegegrad_to_numjobs(cursor)
+    declining_balance_to_25percent(cursor)
+    display_college_data(collegegrad_data, cursor)
+    # commented out functions to display both maps
+    # show_figure_declining_balance(cursor)
+    # show_figure_collegegrad_vs_job(cursor)
     close_db(conn)
 
 

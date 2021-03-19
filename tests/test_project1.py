@@ -73,3 +73,4 @@ def test_excel_to_database_exists():
     results = cursor.execute(sql).fetchall()
     assert len(results) == 9
     project1.close_db(conn)
+
