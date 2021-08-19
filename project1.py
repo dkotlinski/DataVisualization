@@ -1,4 +1,4 @@
-# Daniel Kotlinski Project 1, Sprint 4 adding GUI and data visualization
+# Daniel Kotlinski Data Visualization Project
 # 3/18/21
 
 
@@ -6,9 +6,6 @@ import openpyxl
 import requests
 import secrets
 import sqlite3
-import project1GUI
-import sys
-from PyQt5.QtWidgets import *
 import plotly.express as px
 from typing import Tuple
 
@@ -55,12 +52,6 @@ def state_abbrev():
                  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
                  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
     return locations
-
-
-def display_college_data(data, cursor):
-    qt_app = QApplication(sys.argv)
-    window = project1GUI.FirstWindow(data, cursor)
-    sys.exit(qt_app.exec_())
 
 
 def declining_balance_to_25percent(cursor):
@@ -207,8 +198,6 @@ def excel_to_database(excel_data, cursor: sqlite3.Cursor):
                                                         hourly_25th_percentile,
                                                         annual_25th_percentile, o_group, jobs_1000))
 
-def excel_data_picker(excel_data_name):
-    print(excel_data_name)
 
 def main():
     excel_data = "state_M2019_dl.xlsx"
@@ -224,12 +213,8 @@ def main():
     create_employment_data(cursor)
     excel_to_database(excel_data, cursor)
     web_to_database(cursor, all_data)
-    collegegrad_data=collegegrad_to_numjobs(cursor)
-    declining_balance_to_25percent(cursor)
-    display_college_data(collegegrad_data, cursor)
-    # commented out functions to display both maps
-    # show_figure_declining_balance(cursor)
-    # show_figure_collegegrad_vs_job(cursor)
+    show_figure_declining_balance(cursor)
+    show_figure_collegegrad_vs_job(cursor)
     close_db(conn)
 
 
